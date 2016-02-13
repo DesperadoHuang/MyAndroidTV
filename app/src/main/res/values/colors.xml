@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="backgorund_gradient_start">#FF000000</color>
+    <color name="background_gradinet_end">#FFDDDDDD</color>
+    <color name="fastlane_background">#00fff7</color>
+    <color name="search_opaque">#fda45f</color>
+</resources>
