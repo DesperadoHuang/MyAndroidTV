@@ -5,5 +5,6 @@
     <color name="fastlane_background">#3d0e0e</color>
     <color name="search_opaque">#fda45f</color>
     <color name="default_background">#2e2e2e</color>
-    <color name="selected_background">#ab7313</color>
+    <color name="selected_background">#7b5109</color>
+    <color name="white">#ffffff</color>
 </resources>

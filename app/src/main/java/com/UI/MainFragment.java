@@ -5,10 +5,13 @@ import android.os.Bundle;
 import android.support.v17.leanback.app.BackgroundManager;
 import android.support.v17.leanback.app.BrowseFragment;
 import android.support.v17.leanback.widget.ArrayObjectAdapter;
+import android.support.v17.leanback.widget.HeaderItem;
+import android.support.v17.leanback.widget.ListRow;
 import android.support.v17.leanback.widget.ListRowPresenter;
 import android.util.DisplayMetrics;
 
 import com.presenter.CardPresenter;
+import com.presenter.GridItemPresenter;
 
 import java.util.List;
 
@@ -37,23 +40,50 @@ public class MainFragment extends BrowseFragment {
 
         setupUIElements();
 
+        initRow();
+    }
+
+    private void initRow() {
         List<Channel> list = ChannelList.setupChannels();
         mRowArrayObjectAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        CardPresenter cardPresenter = new CardPresenter();
 
+        CardPresenter cardPresenter = new CardPresenter();
         int i;
         for (i = 0; i < NUM_ROWS; i++) {
+
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
+            for (int j = 0; j < list.size(); j++) {
+                listRowAdapter.add(list.get(j));
+            }
+
+            HeaderItem headerItem = new HeaderItem(i, ChannelList.CHANNEL_CATEGORY[i]);
+
+            mRowArrayObjectAdapter.add(new ListRow(headerItem, listRowAdapter));
         }
 
+        GridItemPresenter gridItemPresenter = new GridItemPresenter();
+        ArrayObjectAdapter gridArrayAdapter = new ArrayObjectAdapter(gridItemPresenter);
+        gridArrayAdapter.add("Grid View");
+        gridArrayAdapter.add("Error Fragment");
+        gridArrayAdapter.add("個人設定");
+        HeaderItem gridHeaderItem = new HeaderItem(i, "喜好設定");
+        mRowArrayObjectAdapter.add(new ListRow(gridHeaderItem, gridArrayAdapter));
+
+        setAdapter(mRowArrayObjectAdapter);
     }
 
     private void setupUIElements() {
+        //設定主畫面標題或圖片
+        // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
         setTitle("My Android TV");
 
+        //設定主選單的顯示模式
         setHeadersState(HEADERS_ENABLED);
-        setHeadersTransitionOnBackEnabled(true);
+        setHeadersTransitionOnBackEnabled(false);
 
+        //設定主選單背景顏色
         setBrandColor(getResources().getColor(R.color.fastlane_background));
+        //設定搜尋按鈕的顏色
         setSearchAffordanceColor(getResources().getColor(R.color.search_opaque));
     }
 
