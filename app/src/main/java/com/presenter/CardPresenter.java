@@ -5,7 +5,7 @@ import android.support.v17.leanback.widget.ImageCardView;
 import android.support.v17.leanback.widget.Presenter;
 import android.view.ViewGroup;
 
-import com.UI.Channel;
+import com.model.Channel;
 import com.UI.R;
 import com.bumptech.glide.Glide;
 

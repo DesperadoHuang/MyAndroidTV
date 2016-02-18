@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest
-    package="com.UI"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest package="com.UI"
+          xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
@@ -18,12 +17,16 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Leanback">
-        <activity android:name=".MainActivity">
+        <activity android:name="com.view.main.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
             </intent-filter>
+        </activity>
+        <activity android:name="com.view.details.ChannelDetailsActivity">
+        </activity>
+        <activity android:name="com.view.error.ErrorActivity">
         </activity>
     </application>
 

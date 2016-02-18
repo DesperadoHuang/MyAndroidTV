@@ -1,4 +1,4 @@
-package com.UI;
+package com.model;
 
 import java.io.Serializable;
 import java.net.URI;
