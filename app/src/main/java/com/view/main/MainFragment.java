@@ -72,6 +72,8 @@ public class MainFragment extends BrowseFragment {
         initRow();
 
         setupEventListener();
+
+
     }
 
 
@@ -175,7 +177,7 @@ public class MainFragment extends BrowseFragment {
                 Intent intent = new Intent(getActivity(), com.view.details.ChannelDetailsActivity.class);
                 intent.putExtra(ChannelDetailsActivity.CHANNEL, channel);
 
-                //加入切換至DetailsActivity的顯示方式，主要是讓切換過程更無違和感
+                //加入切換至DetailsActivity的畫面過場方式，主要是讓切換過程更無違和感
                 Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         getActivity(),
                         ((ImageCardView) itemViewHolder.view).getMainImageView(),

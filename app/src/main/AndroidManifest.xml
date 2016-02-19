@@ -28,6 +28,8 @@
         </activity>
         <activity android:name="com.view.error.ErrorActivity">
         </activity>
+        <activity android:name="com.view.playback_overlay.PlaybackOverlayActivity">
+        </activity>
     </application>
 
 </manifest>
