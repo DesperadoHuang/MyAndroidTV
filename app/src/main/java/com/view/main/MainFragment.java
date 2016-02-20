@@ -79,10 +79,11 @@ public class MainFragment extends BrowseFragment {
 
     /**
      * 準備BackgroundManager(背景相關)
-     * <p/>
+     * <p>
      * BackgroundManager是用來管理主畫面背景的類別
      */
     private void prepareBackgroundManager() {
+        MyTools.myLog("BrowseFragment : onActivityCreated...prepareBackgroundManager()");
         mBackgroundManager = BackgroundManager.getInstance(getActivity());
         mBackgroundManager.attach(getActivity().getWindow());
 
@@ -94,6 +95,7 @@ public class MainFragment extends BrowseFragment {
 
 
     private void setupUIElements() {
+        MyTools.myLog("BrowseFragment : onActivityCreated...setupUIElements()");
         //設定主畫面標題或圖片
         // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
         setTitle("My Taiwan TV");
@@ -112,14 +114,15 @@ public class MainFragment extends BrowseFragment {
      * 初始化主選單選項及子選單的選項
      */
     private void initRow() {
+        MyTools.myLog("BrowseFragment : onActivityCreated...initRow()");
         List<Channel> list = ChannelList.setupChannels();
         mRowArrayObjectAdapter = new ArrayObjectAdapter(new ListRowPresenter());//建立主選單adpater
 
         CardPresenter cardPresenter = new CardPresenter();//建立cardPresenter物件
         int i;
         for (i = 0; i < CHANNEL_TYPE_ROWS; i++) {
-
             ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);//建立裡面包含著cardPresenter的子選單adapter
+
             for (int j = 0; j < list.size(); j++) {//取出list中的元素加入子選單中
                 listRowAdapter.add(list.get(j));
             }
@@ -142,6 +145,7 @@ public class MainFragment extends BrowseFragment {
      * 註冊監聽事件
      */
     private void setupEventListener() {
+        MyTools.myLog("BrowseFragment : onActivityCreated...setupEventListener()");
         //設定Search按鈕的監聽事件並顯示按鈕
         //        setOnSearchClickedListener(new View.OnClickListener() {
         //            @Override
@@ -158,7 +162,7 @@ public class MainFragment extends BrowseFragment {
     public void onDestroy() {
         super.onDestroy();
         if (mBackgroundTimer != null) {
-            MyTools.myLog("MainFragment : onDestroy");
+            MyTools.myLog("BrowseFragment : onDestroy");
             mBackgroundTimer.cancel();
         }
     }
@@ -173,7 +177,8 @@ public class MainFragment extends BrowseFragment {
                                   RowPresenter.ViewHolder rowViewHolder, Row row) {
             if (item instanceof Channel) {
                 Channel channel = (Channel) item;
-                MyTools.myLog("Item : " + channel.toString());
+                MyTools.myLog("BrowseFragment : ItemViewClickedListener...onItemClicked \n " +
+                        "Item : " + channel.toString());
                 Intent intent = new Intent(getActivity(), com.view.details.ChannelDetailsActivity.class);
                 intent.putExtra(ChannelDetailsActivity.CHANNEL, channel);
 
@@ -195,7 +200,7 @@ public class MainFragment extends BrowseFragment {
 
     /**
      * 選項被選取(只取得焦點，未點選)時的監聽事件
-     * <p/>
+     * <p>
      * 選項取得焦點時，延遲指定毫秒(BACKGROUND_UPDATE_DELAY)後開始下載圖片，然後更新選項背景
      */
     private class ItemViewSelectedListener implements OnItemViewSelectedListener {
@@ -205,6 +210,8 @@ public class MainFragment extends BrowseFragment {
                                    RowPresenter.ViewHolder rowViewHolder, Row row) {
             if (item instanceof Channel) {
                 mBackgroundURI = ((Channel) item).getBackgroundImageURI();
+                MyTools.myLog("BrowseFragment : row → " + row.getHeaderItem().getName() +
+                        "\n mBackgroundURI → " + mBackgroundURI.toString());
                 startBackgroundTimer();
             }
         }

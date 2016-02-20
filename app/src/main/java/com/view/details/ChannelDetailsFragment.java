@@ -12,9 +12,15 @@ import android.support.v17.leanback.widget.ClassPresenterSelector;
 import android.support.v17.leanback.widget.DetailsOverviewRow;
 import android.support.v17.leanback.widget.DetailsOverviewRowPresenter;
 import android.support.v17.leanback.widget.HeaderItem;
+import android.support.v17.leanback.widget.ImageCardView;
 import android.support.v17.leanback.widget.ListRow;
 import android.support.v17.leanback.widget.ListRowPresenter;
 import android.support.v17.leanback.widget.OnActionClickedListener;
+import android.support.v17.leanback.widget.OnItemViewClickedListener;
+import android.support.v17.leanback.widget.Presenter;
+import android.support.v17.leanback.widget.Row;
+import android.support.v17.leanback.widget.RowPresenter;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.util.DisplayMetrics;
 
 import com.UI.R;
@@ -49,7 +55,7 @@ public class ChannelDetailsFragment extends DetailsFragment {
 
     private BackgroundManager mBackgroundManager;           //背景管理器
     private Drawable mDefaultBackground;                    //預設的背景圖片
-    private DisplayMetrics mDisplayMetrics;                //包裝著螢幕尺寸資訊
+    private DisplayMetrics mDisplayMetrics;                 //包裝著螢幕尺寸資訊
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -66,16 +72,27 @@ public class ChannelDetailsFragment extends DetailsFragment {
             setupDetailsOverviewRowPresenter();
             setupChannelListRow();
             setupChannelListRowPresenter();
+            updateBackground(mSelectedChannel.getBgImageUrl());
+            setOnItemViewClickedListener(new ItemViewClickedListener());
         } else {
             Intent intent = new Intent(getActivity(), MainActivity.class);
             startActivity(intent);
         }
     }
 
+    @Override
+    public void onStop() {
+        MyTools.myLog("ChannelDetailsFragment : onStop");
+        super.onStop();
+    }
+
     private void prepareBackgroundManager() {
         MyTools.myLog("ChannelDetailsFragment : prepareBackgroundManager");
         mBackgroundManager = BackgroundManager.getInstance(getActivity()); //取得BackgroundManager實體
         mBackgroundManager.attach(getActivity().getWindow());//將BackgroundManager與要顯示視窗連結
+        mDefaultBackground = getResources().getDrawable(R.drawable.default_background);
+
+        //取得螢幕解析度
         mDisplayMetrics = new DisplayMetrics();
         getActivity().getWindowManager().getDefaultDisplay().getMetrics(mDisplayMetrics);
     }
@@ -88,6 +105,7 @@ public class ChannelDetailsFragment extends DetailsFragment {
     }
 
     private void setupDetailsOverviewRow() {
+        MyTools.myLog("ChannelDetailsFragment : setupDetailsOverviewRow");
         final DetailsOverviewRow detailsOverviewRow = new DetailsOverviewRow(mSelectedChannel);
         detailsOverviewRow.setImageDrawable(getResources().getDrawable(R.drawable.default_background));
         int width = MyTools.convertDpToPixel(getActivity().getApplicationContext(), DETAILS_THUMB_WIDTH);
@@ -100,7 +118,7 @@ public class ChannelDetailsFragment extends DetailsFragment {
                     @Override
                     public void onResourceReady(GlideDrawable resource,
                                                 GlideAnimation<? super GlideDrawable> glideAnimation) {
-                        MyTools.myLog("Details overview card image url ready:" + resource);
+                        MyTools.myLog("ChannelDetailsFragment : setupDetailsOverviewRow...onResourceReady");
                         detailsOverviewRow.setImageDrawable(resource);
                         mArrayObjectAdapter.notifyArrayItemRangeChanged(0, mArrayObjectAdapter.size());
                     }
@@ -110,6 +128,7 @@ public class ChannelDetailsFragment extends DetailsFragment {
     }
 
     private void setupDetailsOverviewRowPresenter() {
+        MyTools.myLog("ChannelDetailsFragment : setupDetailsOverviewRowPresenter");
         //設定details的大小與背景顏色
         DetailsOverviewRowPresenter detailsOverviewRowPresenter = new DetailsOverviewRowPresenter(new DetailsDescriptionPresenter());
         detailsOverviewRowPresenter.setBackgroundColor(getResources().getColor(R.color.selected_background));
@@ -122,6 +141,7 @@ public class ChannelDetailsFragment extends DetailsFragment {
         detailsOverviewRowPresenter.setOnActionClickedListener(new OnActionClickedListener() {
             @Override
             public void onActionClicked(Action action) {
+                MyTools.myLog("ChannelDetailsFragment : setupDetailsOverviewRowPresenter...onActionClicked");
                 if (action.getId() == ACTION_WATCH) {
                     Intent intent = new Intent(getActivity(), PlaybackOverlayActivity.class);
                     intent.putExtra(ChannelDetailsActivity.CHANNEL, mSelectedChannel);
@@ -134,17 +154,57 @@ public class ChannelDetailsFragment extends DetailsFragment {
     }
 
     private void setupChannelListRow() {
-        String subcategories[] = {"相關頻道"};
+        MyTools.myLog("ChannelDetailsFragment : setupChannelListRow");
         List<Channel> channelList = ChannelList.list;
         ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
         for (int i = 0; i < channelList.size(); i++) {
             listRowAdapter.add(channelList.get(i));
         }
-        HeaderItem headerItem = new HeaderItem(0, subcategories[0]);
+        HeaderItem headerItem = new HeaderItem(0, "相關頻道");
         mArrayObjectAdapter.add(new ListRow(headerItem, listRowAdapter));
     }
 
     private void setupChannelListRowPresenter() {
+        MyTools.myLog("ChannelDetailsFragment : setupChannelListRowPresenter");
         mClassPresenterSelector.addClassPresenter(ListRow.class, new ListRowPresenter());
+    }
+
+    private void updateBackground(String uri) {
+        MyTools.myLog("ChannelDetailsFragment : updateBackground");
+        Glide.with(getActivity())
+                .load(uri)
+                .centerCrop()
+                .error(mDefaultBackground)
+                .into(new SimpleTarget<GlideDrawable>(mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels) {
+                    @Override
+                    public void onResourceReady(GlideDrawable resource,
+                                                GlideAnimation<? super GlideDrawable> glideAnimation) {
+                        MyTools.myLog("ChannelDetailsFragment : updateBackground...onResourceReady");
+                        mBackgroundManager.setDrawable(resource);
+                    }
+                });
+    }
+
+    private class ItemViewClickedListener implements OnItemViewClickedListener {
+        @Override
+        public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
+                                  RowPresenter.ViewHolder rowViewHolder, Row row) {
+            if (item instanceof Channel) {
+                Channel channel = (Channel) item;
+                MyTools.myLog("ChannelDetailsFragment : ItemViewClickedListener...onItemClicked\n" +
+                        "Item : " + channel.toString());
+                Intent intent = new Intent(getActivity(), ChannelDetailsActivity.class);
+                intent.putExtra(ChannelDetailsActivity.CHANNEL, mSelectedChannel);
+                intent.putExtra(ChannelDetailsActivity.SHARED_ELEMENT_NAME, true);
+
+                Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                        getActivity(),
+                        ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                        ChannelDetailsActivity.SHARED_ELEMENT_NAME
+                ).toBundle();
+
+                getActivity().startActivity(intent, bundle);
+            }
+        }
     }
 }
