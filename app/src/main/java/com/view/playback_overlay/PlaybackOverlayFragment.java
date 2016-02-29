@@ -2,6 +2,8 @@ package com.view.playback_overlay;
 
 
 import android.content.Context;
+import android.media.MediaMetadataRetriever;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v17.leanback.widget.AbstractDetailsDescriptionPresenter;
@@ -33,6 +35,7 @@ import com.presenter.CardPresenter;
 import com.view.details.ChannelDetailsActivity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import tools.MyTools;
@@ -164,8 +167,22 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         if (SHOW_DETAIL) {
             updateVideoImage(mItems.get(mCurrentItem).getCardImageURI().toString());
         }
-        mRowAdapter.notifyArrayItemRangeChanged(0,1);
+        mRowAdapter.notifyArrayItemRangeChanged(0, 1);
+        mPlaybackControlsRow.setTotalTime(getDuration());
 
+    }
+
+    private int getDuration() {
+        Channel channel = mItems.get(mCurrentItem);
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();//此類別的物件可取得媒體文件的相關訊息
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            mmr.setDataSource(channel.getVideoUrl(), new HashMap<String, String>());
+        } else {
+            mmr.setDataSource(channel.getVideoUrl());
+        }
+        String time = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+        long duration = Long.parseLong(time);
+        return (int) duration;
     }
 
     private void updateVideoImage(String uri) {
