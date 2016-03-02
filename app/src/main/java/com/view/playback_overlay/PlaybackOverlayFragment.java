@@ -10,6 +10,8 @@ import android.support.v17.leanback.widget.AbstractDetailsDescriptionPresenter;
 import android.support.v17.leanback.widget.Action;
 import android.support.v17.leanback.widget.ArrayObjectAdapter;
 import android.support.v17.leanback.widget.ClassPresenterSelector;
+import android.support.v17.leanback.widget.ControlButtonPresenterSelector;
+import android.support.v17.leanback.widget.HeaderItem;
 import android.support.v17.leanback.widget.ListRow;
 import android.support.v17.leanback.widget.ListRowPresenter;
 import android.support.v17.leanback.widget.OnActionClickedListener;
@@ -45,16 +47,22 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     private static final boolean HIDE_MORE_ACTION = false;
     private static final int CARD_WIDTH = 200;                      //
     private static final int CARD_HEIGHT = 240;                     //
+    private static final int PRIMARY_CONTROLS = 5;                  //
+    private static final boolean SHOW_IMAGE = PRIMARY_CONTROLS <= 5;//
     private static Context sContext;
 
+    OnPlayPauseClickedListener mCallback;
+
     private ArrayObjectAdapter mRowAdapter;
+    private ArrayObjectAdapter mPrimaryActionsAdapter;              //主要???
+    private ArrayObjectAdapter mSecondaryActionsAdapter;            //次要
 
     private PlaybackControlsRow mPlaybackControlsRow;               //播放控制列
     private PlayPauseAction mPlayPauseAction;                       //暫停
     private RepeatAction mRepeatAction;                             //重複
     private ThumbsUpAction mThumbsUpAction;                         //點讚
     private ThumbsDownAction mThumbsDownAction;                     //點不讚
-    private ShuffleAction mShuffleAction;                           //播放進度的拖移鈕
+    private ShuffleAction mShuffleAction;                           //隨機撥放
     private FastForwardAction mFastForwardAction;                   //快轉
     private RewindAction mRewindAction;                             //倒帶
     private SkipNextAction mSkipNextAction;                         //直接播放下一個
@@ -64,7 +72,9 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     private Channel mSelectedChannel;                               //被選取的Channel
     private int mCurrentItem;                                       //當前項目的索引(?)
 
+
     private Handler mHandler;
+    private Runnable mRunnable;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,6 +83,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         mItems = new ArrayList<Channel>();
         mSelectedChannel = (Channel) getActivity().getIntent().getSerializableExtra(ChannelDetailsActivity.CHANNEL);
         List<Channel> channelList = ChannelList.list;
+
         ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
 
         for (int i = 0; i < channelList.size(); i++) {
@@ -87,6 +98,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         setBackgroundType(BG_LIGHT);
         setFadingEnabled(false);
 
+        setupRows();
 
     }
 
@@ -119,7 +131,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
                 }
                 if (action instanceof PlaybackControlsRow.MultiAction) {
                     ((PlaybackControlsRow.MultiAction) action).nextIndex();
-
+                    notifyChanged(action);
                 }
             }
         });
@@ -137,15 +149,56 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     }
 
     private void togglePlayback(boolean playPause) {
-
+        if (playPause) {
+            startProgressAutomation();
+            setFadingEnabled(true);
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), mPlaybackControlsRow.getCurrentTime(), true);
+            mPlayPauseAction.setIcon(mPlayPauseAction.getDrawable(PlayPauseAction.PLAY));
+        } else {
+            stopProgressAutomation();
+            setFadingEnabled(false);
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), mPlaybackControlsRow.getCurrentTime(), false);
+            mPlayPauseAction.setIcon(mPlayPauseAction.getDrawable(PlayPauseAction.PAUSE));
+        }
+        notifyChanged(mPlayPauseAction);
     }
 
-    private void addOtherRows() {
+    private void stopProgressAutomation() {
+        if (mHandler != null && mRunnable != null) {
+            mHandler.removeCallbacks(mRunnable);
+        }
+    }
 
+    private void startProgressAutomation() {
+        mRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        };
     }
 
     /**
-     * 初始化控制列
+     * 通知更改主要及次要控制列
+     *
+     * @param action
+     */
+    private void notifyChanged(Action action) {
+        ArrayObjectAdapter adapter = mPrimaryActionsAdapter;
+        if (adapter.indexOf(action) >= 0) {
+            adapter.notifyArrayItemRangeChanged(adapter.indexOf(action), 1);
+            return;
+        }
+        adapter = mSecondaryActionsAdapter;
+        if (adapter.indexOf(action) >= 0) {
+            adapter.notifyArrayItemRangeChanged(adapter.indexOf(action), 1);
+            return;
+        }
+    }
+
+    /**
+     * 初始化控制列Row
+     * 添加控制列中的播放控制按鈕
      */
     private void addPlaybackContrlosRow() {
         if (SHOW_DETAIL) {
@@ -156,6 +209,35 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         mRowAdapter.add(mPlaybackControlsRow);
 
         updatePlaybackRow(mCurrentItem);
+
+        ControlButtonPresenterSelector controlButtonPresenterSelector = new ControlButtonPresenterSelector();
+        mPrimaryActionsAdapter = new ArrayObjectAdapter(controlButtonPresenterSelector);
+        mSecondaryActionsAdapter = new ArrayObjectAdapter(controlButtonPresenterSelector);
+        mPlaybackControlsRow.setPrimaryActionsAdapter(mPrimaryActionsAdapter);
+        mPlaybackControlsRow.setSecondaryActionsAdapter(mSecondaryActionsAdapter);
+
+        //        mSkipPreviousAction = new SkipPreviousAction(sContext);//跳往上一個
+        //        mRewindAction = new RewindAction(sContext);//倒帶
+        mPlayPauseAction = new PlayPauseAction(sContext);//播放/暫停
+        //        mFastForwardAction = new FastForwardAction(sContext);//快轉
+        //        mSkipNextAction = new SkipNextAction(sContext);//跳往下一個
+
+        //        mRepeatAction = new RepeatAction(sContext);//重複撥放
+        //        mShuffleAction = new ShuffleAction(sContext);//隨機撥放
+        mThumbsUpAction = new ThumbsUpAction(sContext);//喜歡
+        //        mThumbsDownAction = new ThumbsDownAction(sContext);//不喜歡
+
+        //        mPrimaryActionsAdapter.add(mSkipPreviousAction);
+        //        mPrimaryActionsAdapter.add(mRewindAction);
+        mPrimaryActionsAdapter.add(mPlayPauseAction);
+        //        mPrimaryActionsAdapter.add(mFastForwardAction);
+        //        mPrimaryActionsAdapter.add(mSkipNextAction);
+        mPrimaryActionsAdapter.add(mThumbsUpAction);
+
+        //        mSecondaryActionsAdapter.add(mRepeatAction);
+        //        mSecondaryActionsAdapter.add(mShuffleAction);
+        //        mSecondaryActionsAdapter.add(mThumbsUpAction);
+        //        mSecondaryActionsAdapter.add(mThumbsDownAction);
     }
 
     private void updatePlaybackRow(int mCurrentItem) {
@@ -164,17 +246,32 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
             channel.setTitle(mItems.get(mCurrentItem).getTitle());
             channel.setStudio(mItems.get(mCurrentItem).getStudio());
         }
-        if (SHOW_DETAIL) {
+        if (SHOW_IMAGE) {
             updateVideoImage(mItems.get(mCurrentItem).getCardImageURI().toString());
         }
         mRowAdapter.notifyArrayItemRangeChanged(0, 1);
         mPlaybackControlsRow.setTotalTime(getDuration());
+        mPlaybackControlsRow.setCurrentTime(0);
+        mPlaybackControlsRow.setBufferedProgress(0);
+    }
 
+    /**
+     * 添加相關頻道Row
+     */
+    private void addOtherRows() {
+        ArrayObjectAdapter relatedListRowAdapter = new ArrayObjectAdapter(new CardPresenter());
+        for (Channel channel : mItems) {
+            relatedListRowAdapter.add(channel);
+        }
+        HeaderItem headerItem = new HeaderItem(0, "相關頻道");
+        mRowAdapter.add(new ListRow(headerItem, relatedListRowAdapter));
     }
 
     private int getDuration() {
         Channel channel = mItems.get(mCurrentItem);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();//此類別的物件可取得媒體文件的相關訊息
+        //Build.VERSION.SDK_INT : SDK版本
+        //Build.VERSION_CODES.ICE_CREAM_SANDWICH : Android 4.0
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             mmr.setDataSource(channel.getVideoUrl(), new HashMap<String, String>());
         } else {
@@ -196,6 +293,10 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
                         mRowAdapter.notifyArrayItemRangeChanged(0, mRowAdapter.size());
                     }
                 });
+    }
+
+    public interface OnPlayPauseClickedListener {
+        public void onFragmentPlayPause(Channel channel, int position, boolean playPause);
     }
 
     static class DescriptionPresenter extends AbstractDetailsDescriptionPresenter {
