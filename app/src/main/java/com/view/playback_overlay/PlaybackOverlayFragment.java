@@ -1,6 +1,7 @@
 package com.view.playback_overlay;
 
 
+import android.app.Activity;
 import android.content.Context;
 import android.media.MediaMetadataRetriever;
 import android.os.Build;
@@ -15,6 +16,8 @@ import android.support.v17.leanback.widget.HeaderItem;
 import android.support.v17.leanback.widget.ListRow;
 import android.support.v17.leanback.widget.ListRowPresenter;
 import android.support.v17.leanback.widget.OnActionClickedListener;
+import android.support.v17.leanback.widget.OnItemViewClickedListener;
+import android.support.v17.leanback.widget.OnItemViewSelectedListener;
 import android.support.v17.leanback.widget.PlaybackControlsRow;
 import android.support.v17.leanback.widget.PlaybackControlsRow.FastForwardAction;
 import android.support.v17.leanback.widget.PlaybackControlsRow.PlayPauseAction;
@@ -26,6 +29,9 @@ import android.support.v17.leanback.widget.PlaybackControlsRow.SkipPreviousActio
 import android.support.v17.leanback.widget.PlaybackControlsRow.ThumbsDownAction;
 import android.support.v17.leanback.widget.PlaybackControlsRow.ThumbsUpAction;
 import android.support.v17.leanback.widget.PlaybackControlsRowPresenter;
+import android.support.v17.leanback.widget.Presenter;
+import android.support.v17.leanback.widget.Row;
+import android.support.v17.leanback.widget.RowPresenter;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
@@ -49,6 +55,10 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     private static final int CARD_HEIGHT = 240;                     //
     private static final int PRIMARY_CONTROLS = 5;                  //
     private static final boolean SHOW_IMAGE = PRIMARY_CONTROLS <= 5;//
+    private static final int DEFAULT_UPDATE_PERIOD = 1000;
+    private static final int UPDATE_PERIOD = 16;
+    private static final int SIMULATED_BUFFERED_TIME = 100000;
+    private static final int BACKGROUND_TYPE = PlaybackOverlayFragment.BG_LIGHT;
     private static Context sContext;
 
     OnPlayPauseClickedListener mCallback;
@@ -77,6 +87,17 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     private Runnable mRunnable;
 
     @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        try {
+            mCallback = (OnPlayPauseClickedListener) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString() + " must implement OnPlayPauseClickedListener");
+        }
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         sContext = getActivity();
@@ -95,10 +116,24 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
         mHandler = new Handler();
 
-        setBackgroundType(BG_LIGHT);
+        setBackgroundType(BACKGROUND_TYPE);
         setFadingEnabled(false);
 
         setupRows();
+
+        setOnItemViewSelectedListener(new OnItemViewSelectedListener() {
+            @Override
+            public void onItemSelected(Presenter.ViewHolder itemViewHolder, Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
+
+            }
+        });
+
+        setOnItemViewClickedListener(new OnItemViewClickedListener() {
+            @Override
+            public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
+
+            }
+        });
 
     }
 
@@ -122,8 +157,10 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
                     togglePlayback(mPlayPauseAction.getIndex() == PlayPauseAction.PLAY);
                 } else if (actionID == mSkipNextAction.getId()) {           //按下播放下一個
                     MyTools.myLog("播放下一個");
+                    next();
                 } else if (actionID == mSkipPreviousAction.getId()) {       //按下播放上一個
                     MyTools.myLog("播放下一個");
+                    prev();
                 } else if (actionID == mFastForwardAction.getId()) {        //按下快轉
                     MyTools.myLog("快轉");
                 } else if (actionID == mRewindAction.getId()) {             //按下倒帶
@@ -173,9 +210,49 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         mRunnable = new Runnable() {
             @Override
             public void run() {
-
+                int updatePeriod = getUpdatePeriod();
+                int currentTime = mPlaybackControlsRow.getCurrentTime() + updatePeriod;
+                int totalTime = mPlaybackControlsRow.getTotalTime();
+                mPlaybackControlsRow.setCurrentTime(currentTime);
+                mPlaybackControlsRow.setBufferedProgress(currentTime + SIMULATED_BUFFERED_TIME);
+                if (totalTime > 0 && totalTime <= currentTime) {
+                    next();
+                }
+                mHandler.postDelayed(this, updatePeriod);
             }
         };
+        mHandler.postDelayed(mRunnable, getUpdatePeriod());
+    }
+
+    private void next() {
+        if (++mCurrentItem >= mItems.size()) {
+            mCurrentItem = 0;
+        }
+        if (mPlayPauseAction.getIndex() == PlayPauseAction.PLAY) {
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), 0, false);
+        } else {
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), 0, true);
+        }
+        updatePlaybackRow(mCurrentItem);
+    }
+
+    private void prev() {
+        if (--mCurrentItem > 0) {
+            mCurrentItem = mItems.size() - 1;
+        }
+        if (mPlayPauseAction.getIndex() == PlayPauseAction.PLAY) {
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), 0, false);
+        } else {
+            mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), 0, true);
+        }
+        updatePlaybackRow(mCurrentItem);
+    }
+
+    private int getUpdatePeriod() {
+        if (getView() == null || mPlaybackControlsRow.getTotalTime() <= 0) {
+            return DEFAULT_UPDATE_PERIOD;
+        }
+        return Math.max(UPDATE_PERIOD, mPlaybackControlsRow.getTotalTime() / getView().getWidth());
     }
 
     /**
@@ -267,6 +344,11 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         mRowAdapter.add(new ListRow(headerItem, relatedListRowAdapter));
     }
 
+    /**
+     * 取得媒體文件的長度
+     *
+     * @return
+     */
     private int getDuration() {
         Channel channel = mItems.get(mCurrentItem);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();//此類別的物件可取得媒體文件的相關訊息
@@ -277,11 +359,24 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         } else {
             mmr.setDataSource(channel.getVideoUrl());
         }
+        //從媒體文件中取出指定的訊息
+        //MediaMetadataRetriever.METADATA_KEY_DURATION : 媒體文件的長度
         String time = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
         long duration = Long.parseLong(time);
         return (int) duration;
     }
 
+    @Override
+    public void onStop() {
+        stopProgressAutomation();
+        super.onStop();
+    }
+
+    /**
+     * 下載並更新頻道控制列的圖片
+     *
+     * @param uri 圖片的URI
+     */
     private void updateVideoImage(String uri) {
         Glide.with(sContext)
                 .load(uri)
