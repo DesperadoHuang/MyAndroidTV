@@ -64,8 +64,8 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     OnPlayPauseClickedListener mCallback;
 
     private ArrayObjectAdapter mRowAdapter;
-    private ArrayObjectAdapter mPrimaryActionsAdapter;              //主要???
-    private ArrayObjectAdapter mSecondaryActionsAdapter;            //次要
+    private ArrayObjectAdapter mPrimaryActionsAdapter;              //主控制列
+    private ArrayObjectAdapter mSecondaryActionsAdapter;            //次控制列
 
     private PlaybackControlsRow mPlaybackControlsRow;               //播放控制列
     private PlayPauseAction mPlayPauseAction;                       //暫停
@@ -88,6 +88,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
     @Override
     public void onAttach(Activity activity) {
+        MyTools.myLog("PlaybackOverlayFragment : onAttach(Activity activity)");
         super.onAttach(activity);
 
         try {
@@ -99,6 +100,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        MyTools.myLog("PlaybackOverlayFragment : onCreate(Bundle savedInstanceState)");
         super.onCreate(savedInstanceState);
         sContext = getActivity();
         mItems = new ArrayList<Channel>();
@@ -123,21 +125,24 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
         setOnItemViewSelectedListener(new OnItemViewSelectedListener() {
             @Override
-            public void onItemSelected(Presenter.ViewHolder itemViewHolder, Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
-
+            public void onItemSelected(Presenter.ViewHolder itemViewHolder,
+                                       Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
+                MyTools.myLog("PlaybackOverlayFragment : onItemSelected → " + item + " row → " + row);
             }
         });
 
         setOnItemViewClickedListener(new OnItemViewClickedListener() {
             @Override
-            public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
-
+            public void onItemClicked(Presenter.ViewHolder itemViewHolder,
+                                      Object item, RowPresenter.ViewHolder rowViewHolder, Row row) {
+                MyTools.myLog("PlaybackOverlayFragment : onItemClicked → " + item + " row → " + row);
             }
         });
 
     }
 
     private void setupRows() {
+        MyTools.myLog("PlaybackOverlayFragment : setupRows()");
         ClassPresenterSelector classPresenterSelector = new ClassPresenterSelector();
 
         //建立播放控制列
@@ -179,16 +184,17 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
         mRowAdapter = new ArrayObjectAdapter(classPresenterSelector);
 
-        addPlaybackContrlosRow();
+        addPlaybackControlsRow();
         addOtherRows();
 
         setAdapter(mRowAdapter);
     }
 
-    private void togglePlayback(boolean playPause) {
+    public void togglePlayback(boolean playPause) {
+        MyTools.myLog("PlaybackOverlayFragment : togglePlayback(boolean playPause)");
         if (playPause) {
             startProgressAutomation();
-            setFadingEnabled(true);
+            setFadingEnabled(true);//開啟畫面淡出；ture開啟，false禁用
             mCallback.onFragmentPlayPause(mItems.get(mCurrentItem), mPlaybackControlsRow.getCurrentTime(), true);
             mPlayPauseAction.setIcon(mPlayPauseAction.getDrawable(PlayPauseAction.PLAY));
         } else {
@@ -201,12 +207,17 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     }
 
     private void stopProgressAutomation() {
+        MyTools.myLog("PlaybackOverlayFragment : stopProgressAutomation()");
         if (mHandler != null && mRunnable != null) {
             mHandler.removeCallbacks(mRunnable);
         }
     }
 
+    /**
+     * 開始更新進度條
+     */
     private void startProgressAutomation() {
+        MyTools.myLog("PlaybackOverlayFragment : startProgressAutomation()");
         mRunnable = new Runnable() {
             @Override
             public void run() {
@@ -225,6 +236,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     }
 
     private void next() {
+        MyTools.myLog("PlaybackOverlayFragment : next()");
         if (++mCurrentItem >= mItems.size()) {
             mCurrentItem = 0;
         }
@@ -237,6 +249,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     }
 
     private void prev() {
+        MyTools.myLog("PlaybackOverlayFragment : prev()");
         if (--mCurrentItem > 0) {
             mCurrentItem = mItems.size() - 1;
         }
@@ -248,7 +261,13 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         updatePlaybackRow(mCurrentItem);
     }
 
+    /**
+     * 取得更新週期
+     *
+     * @return
+     */
     private int getUpdatePeriod() {
+        MyTools.myLog("PlaybackOverlayFragment : getUpdatePeriod()");
         if (getView() == null || mPlaybackControlsRow.getTotalTime() <= 0) {
             return DEFAULT_UPDATE_PERIOD;
         }
@@ -261,6 +280,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
      * @param action
      */
     private void notifyChanged(Action action) {
+        MyTools.myLog("PlaybackOverlayFragment : notifyChanged");
         ArrayObjectAdapter adapter = mPrimaryActionsAdapter;
         if (adapter.indexOf(action) >= 0) {
             adapter.notifyArrayItemRangeChanged(adapter.indexOf(action), 1);
@@ -277,7 +297,8 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
      * 初始化控制列Row
      * 添加控制列中的播放控制按鈕
      */
-    private void addPlaybackContrlosRow() {
+    private void addPlaybackControlsRow() {
+        MyTools.myLog("PlaybackOverlayFragment : addPlaybackControlsRow()");
         if (SHOW_DETAIL) {
             mPlaybackControlsRow = new PlaybackControlsRow(mSelectedChannel);
         } else {
@@ -293,31 +314,33 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
         mPlaybackControlsRow.setPrimaryActionsAdapter(mPrimaryActionsAdapter);
         mPlaybackControlsRow.setSecondaryActionsAdapter(mSecondaryActionsAdapter);
 
-        //        mSkipPreviousAction = new SkipPreviousAction(sContext);//跳往上一個
-        //        mRewindAction = new RewindAction(sContext);//倒帶
+        mSkipPreviousAction = new SkipPreviousAction(sContext);//跳往上一個
+        mRewindAction = new RewindAction(sContext);//倒帶
         mPlayPauseAction = new PlayPauseAction(sContext);//播放/暫停
-        //        mFastForwardAction = new FastForwardAction(sContext);//快轉
-        //        mSkipNextAction = new SkipNextAction(sContext);//跳往下一個
+        mFastForwardAction = new FastForwardAction(sContext);//快轉
+        mSkipNextAction = new SkipNextAction(sContext);//跳往下一個
 
-        //        mRepeatAction = new RepeatAction(sContext);//重複撥放
-        //        mShuffleAction = new ShuffleAction(sContext);//隨機撥放
+        mRepeatAction = new RepeatAction(sContext);//重複撥放
+        mShuffleAction = new ShuffleAction(sContext);//隨機撥放
         mThumbsUpAction = new ThumbsUpAction(sContext);//喜歡
-        //        mThumbsDownAction = new ThumbsDownAction(sContext);//不喜歡
+        mThumbsDownAction = new ThumbsDownAction(sContext);//不喜歡
 
-        //        mPrimaryActionsAdapter.add(mSkipPreviousAction);
-        //        mPrimaryActionsAdapter.add(mRewindAction);
+        mPrimaryActionsAdapter.add(mSkipPreviousAction);
+        mPrimaryActionsAdapter.add(mRewindAction);
         mPrimaryActionsAdapter.add(mPlayPauseAction);
-        //        mPrimaryActionsAdapter.add(mFastForwardAction);
-        //        mPrimaryActionsAdapter.add(mSkipNextAction);
-        mPrimaryActionsAdapter.add(mThumbsUpAction);
+        mPrimaryActionsAdapter.add(mFastForwardAction);
+        mPrimaryActionsAdapter.add(mSkipNextAction);
 
-        //        mSecondaryActionsAdapter.add(mRepeatAction);
-        //        mSecondaryActionsAdapter.add(mShuffleAction);
-        //        mSecondaryActionsAdapter.add(mThumbsUpAction);
-        //        mSecondaryActionsAdapter.add(mThumbsDownAction);
+        mSecondaryActionsAdapter.add(mRepeatAction);
+        mSecondaryActionsAdapter.add(mShuffleAction);
+        mSecondaryActionsAdapter.add(mThumbsUpAction);
+        mSecondaryActionsAdapter.add(mThumbsDownAction);
+        mSecondaryActionsAdapter.add(new PlaybackControlsRow.HighQualityAction(sContext));
+        mSecondaryActionsAdapter.add(new PlaybackControlsRow.ClosedCaptioningAction(sContext));
     }
 
     private void updatePlaybackRow(int mCurrentItem) {
+        MyTools.myLog("PlaybackOverlayFragment : updatePlaybackRow(int mCurrentItem)");
         if (mPlaybackControlsRow.getItem() != null) {
             Channel channel = (Channel) mPlaybackControlsRow.getItem();
             channel.setTitle(mItems.get(mCurrentItem).getTitle());
@@ -336,6 +359,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
      * 添加相關頻道Row
      */
     private void addOtherRows() {
+        MyTools.myLog("PlaybackOverlayFragment : addOtherRows()");
         ArrayObjectAdapter relatedListRowAdapter = new ArrayObjectAdapter(new CardPresenter());
         for (Channel channel : mItems) {
             relatedListRowAdapter.add(channel);
@@ -350,6 +374,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
      * @return
      */
     private int getDuration() {
+        MyTools.myLog("PlaybackOverlayFragment : getDuration()");
         Channel channel = mItems.get(mCurrentItem);
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();//此類別的物件可取得媒體文件的相關訊息
         //Build.VERSION.SDK_INT : SDK版本
@@ -368,6 +393,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
 
     @Override
     public void onStop() {
+        MyTools.myLog("PlaybackOverlayFragment : onStop()");
         stopProgressAutomation();
         super.onStop();
     }
@@ -378,6 +404,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
      * @param uri 圖片的URI
      */
     private void updateVideoImage(String uri) {
+        MyTools.myLog("PlaybackOverlayFragment : updateVideoImage(String uri)");
         Glide.with(sContext)
                 .load(uri)
                 .centerCrop()
