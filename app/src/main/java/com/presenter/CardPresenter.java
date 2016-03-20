@@ -57,7 +57,7 @@ public class CardPresenter extends Presenter {
             //強大的ImageLoader
             Glide.with(viewHolder.view.getContext())
                     .load(channel.getCardImageUrl())
-                    .centerCrop()                              //中心切圖，會填滿
+                    .fitCenter()                              //中心切圖，會填滿
                     .error(mDefaultCardImage)                  //load失敗時的Drawable
                     .into(imageCardView.getMainImageView());
         }
