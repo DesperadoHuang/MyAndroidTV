@@ -1,7 +1,6 @@
 package com.view.playback_overlay;
 
 
-import android.app.Activity;
 import android.content.Context;
 import android.media.MediaMetadataRetriever;
 import android.os.Build;
@@ -87,7 +86,7 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     private Runnable mRunnable;
 
     @Override
-    public void onAttach(Activity activity) {
+    public void onAttach(Context activity) {
         MyTools.myLog("PlaybackOverlayFragment : onAttach(Activity activity)");
         super.onAttach(activity);
 
@@ -102,13 +101,14 @@ public class PlaybackOverlayFragment extends android.support.v17.leanback.app.Pl
     public void onCreate(Bundle savedInstanceState) {
         MyTools.myLog("PlaybackOverlayFragment : onCreate(Bundle savedInstanceState)");
         super.onCreate(savedInstanceState);
+
         sContext = getActivity();
+
         mItems = new ArrayList<Channel>();
+
         mSelectedChannel = (Channel) getActivity().getIntent().getSerializableExtra(ChannelDetailsActivity.CHANNEL);
+
         List<Channel> channelList = ChannelList.list;
-
-        ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
-
         for (int i = 0; i < channelList.size(); i++) {
             mItems.add(channelList.get(i));
             if (mSelectedChannel.getTitle().contentEquals(mItems.get(i).getTitle())) {
